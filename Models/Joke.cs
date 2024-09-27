@@ -4,8 +4,8 @@
     {
         // prop
         public int Id { get; set; }
-        public String JokeQuestion { get; set; }
-        public String JokeAnswer { get; set; }
+        public String JokeQuestion { get; set; } = string.Empty;
+        public String JokeAnswer { get; set; } = string.Empty;
 
         // ctor
         public Joke()
