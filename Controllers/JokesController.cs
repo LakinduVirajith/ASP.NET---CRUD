@@ -11,7 +11,10 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace ASP.NET___CRUD.Controllers
 {
-    public class JokesController : Controller
+    [Route("api/v1/[controller]")]
+    [ApiController]
+    [Authorize(Roles = "Customer")]
+    public class JokesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
 
@@ -20,152 +23,86 @@ namespace ASP.NET___CRUD.Controllers
             _context = context;
         }
 
-        // GET: Jokes
-        public async Task<IActionResult> Index()
+        // GET: api/v1/jokes
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Joke>>> GetJokes()
         {
-            return View(await _context.Joke.ToListAsync());
+            return await _context.Joke.ToListAsync();
         }
 
-        // GET: Jokes/Search
-        public IActionResult Search()
+        // GET: api/v1/jokes/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Joke>> GetJoke(int id)
         {
-            return View();
-        }
+            var joke = await _context.Joke.FindAsync(id);
 
-        // POST: Jokes/Show Search Result
-        public async Task<IActionResult> ShowSearchResult(String SearchPhrase)
-        {
-            return View("Index", await _context.Joke.Where( j => j.JokeQuestion.Contains(SearchPhrase)).ToListAsync());
-        }
-
-        // GET: Jokes/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var joke = await _context.Joke
-                .FirstOrDefaultAsync(m => m.Id == id);
             if (joke == null)
             {
                 return NotFound();
             }
 
-            return View(joke);
+            return joke;
         }
 
-        // GET: Jokes/Create
-        [Authorize]
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Jokes/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [Authorize]
+        // POST: api/v1/jokes
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,JokeQuestion,JokeAnswer")] Joke joke)
+        public async Task<ActionResult<Joke>> CreateJoke(Joke joke)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(joke);
+                _context.Joke.Add(joke);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+
+                return CreatedAtAction(nameof(GetJoke), new { id = joke.Id }, joke);
             }
-            return View(joke);
+            return BadRequest(ModelState);
         }
 
-        // GET: Jokes/Edit/5
-        [Authorize]
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var joke = await _context.Joke.FindAsync(id);
-            if (joke == null)
-            {
-                return NotFound();
-            }
-            return View(joke);
-        }
-
-        // POST: Jokes/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,JokeQuestion,JokeAnswer")] Joke joke)
+        // PUT: api/v1/jokes/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateJoke(int id, Joke joke)
         {
             if (id != joke.Id)
             {
-                return NotFound();
+                return BadRequest();
             }
 
             if (ModelState.IsValid)
             {
+                _context.Entry(joke).State = EntityState.Modified;
+
                 try
                 {
-                    _context.Update(joke);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!JokeExists(joke.Id))
+                    if (!JokeExists(id))
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
-                return RedirectToAction(nameof(Index));
+
+                return NoContent();
             }
-            return View(joke);
+            return BadRequest(ModelState);
         }
 
-        // GET: Jokes/Delete/5
-        [Authorize]
-        public async Task<IActionResult> Delete(int? id)
+        // DELETE: api/v1/jokes/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteJoke(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var joke = await _context.Joke
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var joke = await _context.Joke.FindAsync(id);
             if (joke == null)
             {
                 return NotFound();
             }
 
-            return View(joke);
-        }
-
-        // POST: Jokes/Delete/5
-        [Authorize]
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var joke = await _context.Joke.FindAsync(id);
-            if (joke != null)
-            {
-                _context.Joke.Remove(joke);
-            }
-
+            _context.Joke.Remove(joke);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+
+            return NoContent();
         }
 
         private bool JokeExists(int id)
